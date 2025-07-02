@@ -1,0 +1,35 @@
+<div class="chat-container">
+  <div class="header">
+    <h2>Angular & Spring Boot Chat</h2>
+    <p>Welcome, <strong>{{ username }}</strong>!</p>
+  </div>
+
+  <ul class="message-area">
+    <!-- Loop over the messages array and display each one -->
+    <li *ngFor="let msg of messages" 
+        [ngClass]="{'chat-message': msg.type === 'CHAT', 'event-message': msg.type !== 'CHAT'}">
+      
+      <!-- Display regular chat messages -->
+      <div *ngIf="msg.type === 'CHAT'">
+        <span class="sender">{{ msg.sender }}:</span>
+        <span class="content">{{ msg.content }}</span>
+      </div>
+
+      <!-- Display join/leave event messages -->
+      <div *ngIf="msg.type !== 'CHAT'">
+        <em>{{ msg.sender }} has {{ msg.type === 'JOIN' ? 'joined' : 'left' }} the chat.</em>
+      </div>
+
+    </li>
+  </ul>
+
+  <form class="message-form" (ngSubmit)="sendMessage()">
+    <input 
+      [(ngModel)]="messageContent" 
+      name="messageContent" 
+      placeholder="Type a message..." 
+      autocomplete="off"
+    />
+    <button type="submit">Send</button>
+  </form>
+</div>
