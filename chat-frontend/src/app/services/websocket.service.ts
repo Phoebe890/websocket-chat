@@ -14,9 +14,7 @@ export class WebSocketService {
 
   constructor() {
     this.stompClient = new Client({
-      // The factory function tells the STOMP client how to create the underlying WebSocket connection.
-      // We use SockJS for its robustness and fallback capabilities.
-      // Make sure this port matches your backend's port (e.g., 8085 or 8080).
+      // The URL of the WebSocket endpoint on the backend.
       webSocketFactory: () => new SockJS('http://localhost:8085/ws'),
 
       // Optional: Logs STOMP frames to the console for easy debugging.
@@ -31,10 +29,9 @@ export class WebSocketService {
       onConnect: (frame) => {
         console.log('Connected to WebSocket server: ' + frame);
 
-        // This is the crucial subscription for private, user-specific replies.
-        // The STOMP client transparently handles the session ID, so we just need
-        // to subscribe to the generic path defined in the backend's @SendToUser.
+
         this.stompClient.subscribe('/user/queue/reply', (message: any) => {
+            console.log('<<< RECEIVED AI REPLY FROM SERVER:', message.body);
           // When a message arrives, parse it and push it into our aiReply$ stream.
           this.aiReply$.next(JSON.parse(message.body));
         });
