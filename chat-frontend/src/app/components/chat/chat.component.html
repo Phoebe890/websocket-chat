@@ -1,35 +1,39 @@
 <div class="chat-container">
   <div class="header">
-    <h2>Angular & Spring Boot Chat</h2>
-    <p>Welcome, <strong>{{ username }}</strong>!</p>
+    <h2>AI Assistant (Powered by Gemini)</h2>
   </div>
 
-  <ul class="message-area">
+  <!-- #messageArea is a template reference variable that gives us access to this div in our component code. -->
+  <ul #messageArea class="message-area">
     <!-- Loop over the messages array and display each one -->
-    <li *ngFor="let msg of messages" 
-        [ngClass]="{'chat-message': msg.type === 'CHAT', 'event-message': msg.type !== 'CHAT'}">
-      
-      <!-- Display regular chat messages -->
-      <div *ngIf="msg.type === 'CHAT'">
-        <span class="sender">{{ msg.sender }}:</span>
-        <span class="content">{{ msg.content }}</span>
+    <li *ngFor="let msg of messages" class="message-wrapper">
+      <!-- Use ngClass to dynamically apply CSS classes based on the sender's name -->
+      <div class="message" [ngClass]="{'user-message': msg.sender === 'User', 'ai-message': msg.sender !== 'User'}">
+        <span class="sender">{{ msg.sender }}</span>
+        <p class="content">{{ msg.content }}</p>
       </div>
-
-      <!-- Display join/leave event messages -->
-      <div *ngIf="msg.type !== 'CHAT'">
-        <em>{{ msg.sender }} has {{ msg.type === 'JOIN' ? 'joined' : 'left' }} the chat.</em>
-      </div>
-
+    </li>
+    
+    <!-- This block shows a "typing" indicator only when we are waiting for a response. -->
+    <li *ngIf="isWaitingForAI" class="message-wrapper">
+        <div class="message ai-message typing-indicator">
+            <span class="sender">Gemini AI</span>
+            <div class="dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
     </li>
   </ul>
 
+  <!-- The form for sending messages. The button is disabled while the AI is processing. -->
   <form class="message-form" (ngSubmit)="sendMessage()">
     <input 
       [(ngModel)]="messageContent" 
       name="messageContent" 
-      placeholder="Type a message..." 
+      placeholder="Ask the AI anything..." 
       autocomplete="off"
+      (keyup.enter)="sendMessage()"
     />
-    <button type="submit">Send</button>
+    <button type="submit" [disabled]="isWaitingForAI || !messageContent.trim()">Send</button>
   </form>
 </div>
