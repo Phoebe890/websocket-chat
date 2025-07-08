@@ -1,39 +1,42 @@
-<div class="chat-container">
-  <div class="header">
-    <h2>AI Assistant (Powered by Gemini)</h2>
+<div class="chat-glass">
+  <div class="chat-header">
+    <div class="header-text">
+      <h2>Gemini AI</h2>
+      <div class="subtitle">Your smart assistant</div>
+    </div>
   </div>
 
-  <!-- #messageArea is a template reference variable that gives us access to this div in our component code. -->
-  <ul #messageArea class="message-area">
-    <!-- Loop over the messages array and display each one -->
-    <li *ngFor="let msg of messages" class="message-wrapper">
-      <!-- Use ngClass to dynamically apply CSS classes based on the sender's name -->
-      <div class="message" [ngClass]="{'user-message': msg.sender === 'User', 'ai-message': msg.sender !== 'User'}">
-        <span class="sender">{{ msg.sender }}</span>
-        <p class="content">{{ msg.content }}</p>
+  <ul #messageArea class="chat-messages">
+    <li *ngFor="let msg of messages" [ngClass]="{'user-row': msg.sender === 'User', 'ai-row': msg.sender !== 'User'}" class="message-row">
+      <div class="bubble" [ngClass]="{'user-bubble': msg.sender === 'User', 'ai-bubble': msg.sender !== 'User'}">
+        <span class="sender user-label" *ngIf="msg.sender === 'User'">You</span>
+        <span class="bubble-content">{{ msg.content }}</span>
       </div>
     </li>
-    
-    <!-- This block shows a "typing" indicator only when we are waiting for a response. -->
-    <li *ngIf="isWaitingForAI" class="message-wrapper">
-        <div class="message ai-message typing-indicator">
-            <span class="sender">Gemini AI</span>
-            <div class="dots">
-                <span></span><span></span><span></span>
-            </div>
-        </div>
+    <li *ngIf="isWaitingForAI" class="message-row ai-row">
+      <div class="bubble ai-bubble typing-anim">
+        <span class="bubble-content">
+          <span class="typing-dots">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="typing-label">Gemini is typing...</span>
+        </span>
+      </div>
     </li>
   </ul>
 
-  <!-- The form for sending messages. The button is disabled while the AI is processing. -->
-  <form class="message-form" (ngSubmit)="sendMessage()">
+  <form class="chat-input-bar" (ngSubmit)="sendMessage()">
     <input 
       [(ngModel)]="messageContent" 
       name="messageContent" 
-      placeholder="Ask the AI anything..." 
+      placeholder="Type your message..." 
       autocomplete="off"
       (keyup.enter)="sendMessage()"
     />
-    <button type="submit" [disabled]="isWaitingForAI || !messageContent.trim()">Send</button>
+    <button type="submit" [disabled]="isWaitingForAI || !messageContent.trim()" aria-label="Send">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 20L21 12L3 4V10L17 12L3 14V20Z" fill="currentColor"/>
+      </svg>
+    </button>
   </form>
 </div>
