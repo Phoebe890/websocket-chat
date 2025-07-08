@@ -1,3 +1,4 @@
+// Test suite for the ChatComponent
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ChatComponent } from './chat.component';

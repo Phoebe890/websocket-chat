@@ -1,49 +1,67 @@
 import { Injectable } from '@angular/core';
-import * as Stomp from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WebSocketService {
-  private stompClient: any;
-  public message$: BehaviorSubject<any> = new BehaviorSubject(null);
+  private stompClient: Client;
+  // Stream for AI replies that components can subscribe to
+  public aiReply$: BehaviorSubject<any> = new BehaviorSubject(null);
 
+  constructor() {
+    this.stompClient = new Client({
+      brokerURL: 'ws://localhost:8085/ws', // Backend WebSocket endpoint
+      debug: (str) => {
+        console.log(new Date(), str);
+      },
+      reconnectDelay: 5000, // Reconnect every 5 seconds if connection is lost
+      onConnect: (frame) => {
+        console.log('Connected to WebSocket server: ', frame);
+        // Subscribe to user-specific queue for AI replies
+        this.stompClient.subscribe('/user/queue/reply', (message) => {
+          this.aiReply$.next(JSON.parse(message.body));
+        });
+      },
+      onStompError: (frame) => {
+        console.error('Broker reported error: ' + frame.headers['message']);
+        console.error('Additional details: ' + frame.body);
+      },
+    });
+  }
+
+  /**
+   * Connects the STOMP client to the backend WebSocket server.
+   * Call this from your main component's ngOnInit.
+   */
   public connect(): void {
-  this.stompClient = new Stomp.Client({
-    webSocketFactory: () => new SockJS('http://localhost:8085/ws'),
-    debug: (str) => {
-      console.log(new Date(), str);
-    },
-    reconnectDelay: 5000, // It will try to reconnect every 5 seconds
-    onConnect: (frame) => {
-      // This is the success callback
-      console.log('Connected: ' + frame);
-      this.stompClient.subscribe('/topic/public', (message: any) => {
-        this.message$.next(JSON.parse(message.body));
-      });
-    },
-    onStompError: (frame) => {
-      // This is the error callback
-      console.error('Broker reported error: ' + frame.headers['message']);
-      console.error('Additional details: ' + frame.body);
-    },
-  });
+    if (!this.stompClient.active) {
+      this.stompClient.activate();
+    }
+  }
 
-  this.stompClient.activate();
+  /**
+   * Disconnects the STOMP client from the backend WebSocket server.
+   */
+  public disconnect(): void {
+    if (this.stompClient.active) {
+      this.stompClient.deactivate();
+    }
+  }
+
+  /**
+   * Sends a message to the AI endpoint on the backend.
+   * @param message The user's message object.
+   */
+  public sendAiMessage(message: any): void {
+    if (!this.stompClient.active) {
+      console.error('Cannot send message, STOMP client is not connected.');
+      return;
+    }
+    this.stompClient.publish({
+      destination: '/app/chat.ai', // Must match @MessageMapping on backend
+      body: JSON.stringify(message)
+    });
+  }
 }
-
-  public sendMessage(message: any): void {
-  this.stompClient.publish({
-    destination: '/app/chat.sendMessage',
-    body: JSON.stringify(message)
-  });
-}
-
-  public sendJoinMessage(message: any): void {
-  this.stompClient.publish({
-    destination: '/app/chat.addUser',
-    body: JSON.stringify(message)
-  });
-}}

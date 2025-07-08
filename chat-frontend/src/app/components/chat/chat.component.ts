@@ -1,52 +1,66 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // <-- Import CommonModule
-import { FormsModule } from '@angular/forms'; // <-- Import FormsModule
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { WebSocketService } from '../../services/websocket.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-chat',
-  standalone: true, // <-- This marks it as a standalone component
-  imports: [
-    CommonModule, // <-- Required for *ngFor, *ngIf, etc.
-    FormsModule   // <-- Required for [(ngModel)]
-  ],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('messageArea') private messageArea!: ElementRef; // For auto-scrolling
+
   public messages: any[] = [];
   public messageContent: string = '';
-  public username: string = '';
+  public isWaitingForAI: boolean = false;
+  private aiReplySubscription: Subscription | undefined;
 
-  // The constructor and methods are identical to the previous guide
   constructor(private webSocketService: WebSocketService) {}
 
   ngOnInit(): void {
-    this.username = window.prompt('Please enter your name:', 'User') || 'Anonymous';
     this.webSocketService.connect();
-
-    this.webSocketService.message$.subscribe((message) => {
+    // Subscribe to AI reply stream
+    this.aiReplySubscription = this.webSocketService.aiReply$.subscribe((message) => {
       if (message) {
+        this.isWaitingForAI = false;
         this.messages.push(message);
       }
     });
-
-    const joinMessage = {
-      sender: this.username,
-      type: 'JOIN'
-    };
-    setTimeout(() => this.webSocketService.sendJoinMessage(joinMessage), 1000);
   }
 
-  public sendMessage(): void {
-    if (this.messageContent.trim()) {
-      const chatMessage = {
-        sender: this.username,
+  ngOnDestroy(): void {
+    // Unsubscribe to prevent memory leaks
+    this.aiReplySubscription?.unsubscribe();
+    this.webSocketService.disconnect();
+  }
+
+  ngAfterViewChecked(): void {
+    this.scrollToBottom();
+  }
+
+  sendMessage(): void {
+    if (this.messageContent.trim() && !this.isWaitingForAI) {
+      const userMessage = {
+        sender: 'User',
         content: this.messageContent,
         type: 'CHAT'
       };
-      this.webSocketService.sendMessage(chatMessage);
+      this.messages.push(userMessage);
+      this.isWaitingForAI = true;
+      this.webSocketService.sendAiMessage(userMessage);
       this.messageContent = '';
+    }
+  }
+
+  private scrollToBottom(): void {
+    try {
+      this.messageArea.nativeElement.scrollTop = this.messageArea.nativeElement.scrollHeight;
+    } catch (err) {
+      // Ignore errors if element is not ready
     }
   }
 }
