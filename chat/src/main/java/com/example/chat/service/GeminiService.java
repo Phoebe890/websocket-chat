@@ -1,4 +1,5 @@
 package com.example.chat.service;
+// Service for interacting with Gemini API asynchronously
 
 import com.example.chat.model.GeminiRequest;
 import com.example.chat.model.GeminiResponse;
@@ -21,13 +22,12 @@ public class GeminiService {
 
     public GeminiService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
-            .baseUrl("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent")
-            .clientConnector(new ReactorClientHttpConnector(
-                HttpClient.create().responseTimeout(Duration.ofSeconds(60))
-            ))
-            .build();
+                .baseUrl(
+                        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent")
+                .clientConnector(new ReactorClientHttpConnector(
+                        HttpClient.create().responseTimeout(Duration.ofSeconds(60))))
+                .build();
     }
-    
 
     /**
      * Sends a prompt to the Gemini API and returns the response asynchronously.
@@ -42,9 +42,10 @@ public class GeminiService {
                 .retrieve()
                 .bodyToMono(GeminiResponse.class)
                 .doOnSubscribe(subscription -> System.out.println("--- [GeminiService] API call initiated."))
-                .doOnSuccess(response -> System.out.println("--- [GeminiService] Successfully received response from Gemini API."))
+                .doOnSuccess(response -> System.out
+                        .println("--- [GeminiService] Successfully received response from Gemini API."))
                 .map(response -> {
-                    // This logic 
+                    // This logic
                     if (response != null && response.getCandidates() != null && !response.getCandidates().isEmpty()) {
                         String text = response.getCandidates().get(0).getContent().getParts().get(0).getText();
                         System.out.println("--- [GeminiService] Extracted AI text.");

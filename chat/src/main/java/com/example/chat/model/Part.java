@@ -1,10 +1,12 @@
 package com.example.chat.model;
 
+// Model for a part of content in Gemini API
 public class Part {
-private String text;
+    private String text;
 
     // A no-argument constructor is required for JSON deserialization by Jackson
-    public Part() {}
+    public Part() {
+    }
 
     public Part(String text) {
         this.text = text;
@@ -19,4 +21,3 @@ private String text;
         this.text = text;
     }
 }
-

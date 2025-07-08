@@ -1,4 +1,5 @@
 package com.example.chat.model;
+// Model for chat messages and message types
 
 public class ChatMessage {
     private String content;
@@ -13,7 +14,8 @@ public class ChatMessage {
     }
 
     // --- Getters and Setters ---
-    // These are crucial for Spring's Jackson library to serialize/deserialize the object to/from JSON.
+    // These are crucial for Spring's Jackson library to serialize/deserialize the
+    // object to/from JSON.
 
     public String getContent() {
         return content;

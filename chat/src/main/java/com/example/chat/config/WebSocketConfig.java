@@ -1,27 +1,27 @@
 package com.example.chat.config;
+// WebSocket/STOMP configuration
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.lang.NonNull;
 
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
+    public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setHandshakeHandler(new UserHandshakeHandler())
-                .setAllowedOrigins("http://localhost:4200")
-                .withSockJS();
+                .setAllowedOriginPatterns("*"); // Allow all origins for dev; restrict in prod
     }
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
+    public void configureMessageBroker(@NonNull MessageBrokerRegistry registry) {
         registry.setApplicationDestinationPrefixes("/app");
-        registry.enableSimpleBroker("/topic", "/user");
+        registry.enableSimpleBroker("/topic", "/queue");
         registry.setUserDestinationPrefix("/user");
     }
 }

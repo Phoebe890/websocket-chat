@@ -1,37 +1,61 @@
 package com.example.chat.controller;
+// Controller for handling chat messages and AI responses
 
 import com.example.chat.model.ChatMessage;
 import com.example.chat.service.GeminiService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.annotation.SendToUser;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import java.security.Principal;
-import java.util.concurrent.CompletableFuture;
 
 @Controller
 public class ChatController {
 
-    @Autowired
-    private GeminiService geminiService;
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
+    private final SimpMessagingTemplate messagingTemplate;
+    private final GeminiService geminiService;
+
+    public ChatController(GeminiService geminiService, SimpMessagingTemplate messagingTemplate) {
+        this.geminiService = geminiService;
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    // The method signature is changed to inject the message headers
     @MessageMapping("/chat.ai")
-    @SendToUser("/queue/reply")
-    public CompletableFuture<ChatMessage> processAiMessage(@Payload ChatMessage chatMessage, Principal principal) {
+    public void processAiMessage(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
+        // Get the unique session ID from the header. This is the key to replying.
+        String sessionId = headerAccessor.getSessionId();
 
-        System.out.println("--- [ChatController] processAiMessage ENTERED for user principal: " + principal.getName());
+        log.info("--- [ChatController] Received message from session ID: {}", sessionId);
+        log.info("--- [ChatController] Message content: {}", chatMessage.getContent());
 
-        return geminiService.getAIResponse(chatMessage.getContent()).thenApply(aiResponseText -> {
+        geminiService.getAIResponse(chatMessage.getContent()).thenAccept(aiResponseText -> {
+            log.info("--- [ChatController] GeminiService replied. Sending message back to session: {}", sessionId);
 
-            System.out.println("--- [ChatController] GeminiService has replied. Sending message back to user: "
-                    + principal.getName());
+            if (sessionId == null) {
+                log.error("--- [ChatController] Session ID is null. Cannot send reply.");
+                return;
+            }
 
             ChatMessage aiReply = new ChatMessage();
             aiReply.setSender("Gemini AI");
             aiReply.setContent(aiResponseText);
             aiReply.setType(ChatMessage.MessageType.CHAT);
-            return aiReply;
+
+            // Use the overload of convertAndSendToUser that takes the SESSION ID.
+            // Spring will correctly route this to /user/{sessionId}/queue/reply
+            messagingTemplate.convertAndSendToUser(
+                    sessionId,
+                    "/queue/reply",
+                    aiReply,
+                    headerAccessor.getMessageHeaders() // It's good practice to pass the original headers
+            );
+
+            log.info("--- [ChatController] Reply sent successfully to session {}", sessionId);
         });
     }
 }

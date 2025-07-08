@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
@@ -8,36 +7,23 @@ import { BehaviorSubject } from 'rxjs';
 })
 export class WebSocketService {
   private stompClient: Client;
-  // A "stream" that components can subscribe to for AI replies.
-  // BehaviorSubject ensures new subscribers get the last emitted value.
+  // Stream for AI replies that components can subscribe to
   public aiReply$: BehaviorSubject<any> = new BehaviorSubject(null);
 
   constructor() {
     this.stompClient = new Client({
-      // The URL of the WebSocket endpoint on the backend.
-      webSocketFactory: () => new SockJS('http://localhost:8085/ws'),
-
-      // Optional: Logs STOMP frames to the console for easy debugging.
+      brokerURL: 'ws://localhost:8085/ws', // Backend WebSocket endpoint
       debug: (str) => {
         console.log(new Date(), str);
       },
-
-      // If the connection is lost, it will attempt to reconnect every 5 seconds.
-      reconnectDelay: 5000,
-
-      // This function is called upon a successful connection to the server.
+      reconnectDelay: 5000, // Reconnect every 5 seconds if connection is lost
       onConnect: (frame) => {
-        console.log('Connected to WebSocket server: ' + frame);
-
-
-        this.stompClient.subscribe('/user/queue/reply', (message: any) => {
-            console.log('<<< RECEIVED AI REPLY FROM SERVER:', message.body);
-          // When a message arrives, parse it and push it into our aiReply$ stream.
+        console.log('Connected to WebSocket server: ', frame);
+        // Subscribe to user-specific queue for AI replies
+        this.stompClient.subscribe('/user/queue/reply', (message) => {
           this.aiReply$.next(JSON.parse(message.body));
         });
       },
-
-      // This function is called if the STOMP broker returns an error frame.
       onStompError: (frame) => {
         console.error('Broker reported error: ' + frame.headers['message']);
         console.error('Additional details: ' + frame.body);
@@ -46,26 +32,35 @@ export class WebSocketService {
   }
 
   /**
-   * Activates the STOMP client, initiating the connection.
+   * Connects the STOMP client to the backend WebSocket server.
+   * Call this from your main component's ngOnInit.
    */
   public connect(): void {
-    this.stompClient.activate();
+    if (!this.stompClient.active) {
+      this.stompClient.activate();
+    }
   }
 
   /**
-   * Deactivates the STOMP client, cleanly closing the connection.
+   * Disconnects the STOMP client from the backend WebSocket server.
    */
   public disconnect(): void {
-    this.stompClient.deactivate();
+    if (this.stompClient.active) {
+      this.stompClient.deactivate();
+    }
   }
 
   /**
-   * Sends a message to the AI-specific endpoint on the backend.
+   * Sends a message to the AI endpoint on the backend.
    * @param message The user's message object.
    */
   public sendAiMessage(message: any): void {
+    if (!this.stompClient.active) {
+      console.error('Cannot send message, STOMP client is not connected.');
+      return;
+    }
     this.stompClient.publish({
-      destination: '/app/chat.ai', // Must match the @MessageMapping on the backend.
+      destination: '/app/chat.ai', // Must match @MessageMapping on backend
       body: JSON.stringify(message)
     });
   }

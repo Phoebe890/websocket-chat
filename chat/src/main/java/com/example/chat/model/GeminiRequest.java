@@ -1,4 +1,5 @@
 package com.example.chat.model;
+// Model for Gemini API request
 
 import java.util.Collections;
 import java.util.List;

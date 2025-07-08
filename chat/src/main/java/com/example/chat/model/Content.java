@@ -1,4 +1,5 @@
 package com.example.chat.model;
+// Model for content in Gemini API
 
 import java.util.List;
 
@@ -7,12 +8,13 @@ public class Content {
     private String role; // The Gemini response includes a 'role' field (e.g., "model")
 
     // No-argument constructor for Jackson
-    public Content() {}
+    public Content() {
+    }
 
     public Content(List<Part> parts) {
         this.parts = parts;
     }
-    
+
     // Getters and setters for Jackson
     public List<Part> getParts() {
         return parts;
