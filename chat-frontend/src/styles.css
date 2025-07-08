@@ -1,1 +1,21 @@
 /* You can add global styles to this file, and also import other style files */
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e0e7ef 0%, #f8fafc 100%);
+  /* Subtle purple/blue tint for glassmorphism */
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  /* Optional: add a soft blur behind everything */
+  /* Use a pseudo-element for backdrop blur if desired */
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  background: inherit;
+  filter: blur(8px) saturate(1.2);
+  opacity: 0.7;
+}
